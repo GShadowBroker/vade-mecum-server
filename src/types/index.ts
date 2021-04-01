@@ -45,3 +45,35 @@ export interface IFilterUsersModel {
   offset: number | undefined;
   role: IFilterUserRole;
 }
+
+export interface IArt {
+  art: string | null;
+  caput: string | undefined;
+  content: Array<string>;
+}
+
+export interface ITitles {
+  title: string;
+  content: string;
+  arts: Array<string | null>;
+}
+
+export interface ICrawlerResponse {
+  title: string | undefined;
+  description: string | undefined;
+  synopsis: Array<ITitles>;
+  formattedContent: Array<IArt>;
+}
+
+export interface ICrawlOptions {
+  url: string;
+}
+
+export interface ILAwResponse {
+  result: Array<ICrawlerResponse>;
+  cached: boolean;
+}
+
+export interface ILawsList {
+  [index: string]: string;
+}

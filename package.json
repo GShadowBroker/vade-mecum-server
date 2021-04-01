@@ -31,6 +31,7 @@
     "@types/node": "^14.14.35",
     "@types/passport": "^1.0.6",
     "@types/passport-jwt": "^3.0.5",
+    "@types/redis": "^2.8.28",
     "bcrypt": "^5.0.1",
     "cookie-parser": "^1.4.5",
     "cors": "^2.8.5",
@@ -39,6 +40,8 @@
     "jsonwebtoken": "^8.5.1",
     "morgan": "^1.10.0",
     "passport": "^0.4.1",
-    "passport-jwt": "^4.0.0"
+    "passport-jwt": "^4.0.0",
+    "puppeteer": "^8.0.0",
+    "redis": "^3.1.0"
   }
 }

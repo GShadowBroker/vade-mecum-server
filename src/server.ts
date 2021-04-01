@@ -8,9 +8,11 @@ import cors from 'cors';
 import passport from 'passport';
 import setReqUser from './services/passport';
 import cookieParser from 'cookie-parser';
+import redis from 'redis';
 
 export const prisma = new PrismaClient();
-const app = express();
+export const client = redis.createClient();
+export const app = express();
 
 app.disable('x-powered-by');
 app.use(express.json());
@@ -23,6 +25,7 @@ setReqUser(passport);
 
 app.use('/api/v1', api.authRoute);
 app.use('/api/v1/users', api.userRoute);
+app.use('/api/v1/laws', api.lawsRoute);
 
 app.use(middleware.unknownEndpoint);
 app.use(middleware.errorHandler);
