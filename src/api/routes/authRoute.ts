@@ -49,4 +49,8 @@ router.post('/signout', (req, res, next) => {
   }
 });
 
+router.get('/ping', (_req, res, _next) => {
+  return res.status(200).json({ message: 'pong' });
+});
+
 export default router;

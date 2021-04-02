@@ -29,7 +29,7 @@ router.get('/:law_name', async (req, res, next) => {
         });
       });
     };
-    const result = await setCache(lawsList[law_name]);
+    const result = await setCache(law_name);
 
     if (result) {
       const response: ILawResponse = {
@@ -39,7 +39,7 @@ router.get('/:law_name', async (req, res, next) => {
       return res.status(200).json(response);
     } else {
       const lawData = await crawl({ url: lawsList[law_name] });
-      client.setex(lawsList[law_name], 30, JSON.stringify(lawData));
+      client.setex(law_name, 30, JSON.stringify(lawData));
       return res.status(200).json({ result: lawData, cached: false });
     }
 

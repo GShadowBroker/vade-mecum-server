@@ -41,7 +41,7 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
         return el.innerText
           .replace(/\s{2,}/gi, " ")
           .replace(/(\s\s+?|\t|\+)/gi, "")
-          .replace(/\n/gi, " ")
+          .replace(/\n/gi, ", ")
           .replace(/Art.&nbsp;/gi, "Art. ")
           .replace("&nbsp;", "")
           .trim();
@@ -205,7 +205,7 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
           } else if (formattedContent.length > 0) {
             const subNum = extractParaNum(el);
             const regex = new RegExp(
-              `${subNum}o(?=[a-záàâãéèêíïóôõöúçñ]+)`,
+              `${subNum}o(?=(\\s)*[a-záàâãéèêíïóôõöúçñ]+)`,
               "gi"
             );
             formattedContent[formattedContent.length - 1].content.push(
