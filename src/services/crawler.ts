@@ -25,21 +25,23 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
     await page.goto(url);
 
     // Logic
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(100);
 
     const body: ICrawlerResponse = await page.evaluate(() => {
       const titleEl: HTMLElement | null = document.querySelector("a font");
       const title: string | undefined = titleEl?.innerText;
 
       const descriptionEl: HTMLElement | null = document.querySelector(
-        "table p font[color='#800000'], p font[color='#800000'], table p span"
+        "table p font[color='#800000'], p font[color='#800000'], table p span font"
       );
       const description: string | undefined = descriptionEl?.innerText;
 
       // Refine creation of Titles to prevent them from being created as separate elements
       let pRaw: string[] = Array.from(<any>document.querySelectorAll("body p"), (el: HTMLElement): string => {
         return el.innerText
+          .replace(/\s{2,}/gi, " ")
           .replace(/(\s\s+?|\t|\+)/gi, "")
+          .replace(/\n/gi, " ")
           .replace(/Art.&nbsp;/gi, "Art. ")
           .replace("&nbsp;", "")
           .trim();
@@ -56,7 +58,9 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
       // Returns the article number or null
       const extractArtNum = (text: string): string | null => {
         text = text.trim();
-        const art = text.match(/^Art.(\s)?.+?(\s-|\.\s|\s|\(VETADO\))+?/gi);
+        const art = text.match(
+          /^Art.(\s)?.+?(\s-|\.\s|\s|\(VETADO\)|\(REVOGADO\))+?/gi
+        );
         if (!art || !Array.isArray(art)) return null;
 
         const matchArt = art[0].match(
@@ -156,13 +160,23 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
       // Format articles into a javascript objects
       const formattedContent: Array<IArt> = [];
       const titlesArray: Array<ITitles> = [];
+      const headerArray: Array<string> = [];
+      const footerArray: Array<string> = [];
+      let reachedFooter = false;
 
       // Format pRaw
       for (const el of pRaw) {
-        const art = extractArtNum(el);
-
+        if (/^Este\s+texto\s+não\s+substitui/gi.test(el)) break;
+        if (/^Brasília/gi.test(el)) {
+          reachedFooter = true;
+        }
+        if (reachedFooter) {
+          footerArray.push(el);
+          continue;
+        }
         // If it's an article
         if (/^Art\.(\s)?/gi.test(el)) {
+          const art = extractArtNum(el);
           formattedContent.push({
             art: art,
             caput: el
@@ -175,7 +189,9 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
             content: [],
           });
 
-          titlesArray[titlesArray.length - 1].arts.push(art);
+          if (titlesArray[titlesArray.length - 1]) {
+            titlesArray[titlesArray.length - 1].arts.push(art);
+          }
         } else {
           // Check if it's title
           if (isTitle(el)) {
@@ -185,6 +201,7 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
               content: el.replace(/\n/gi, " - "),
               arts: [],
             });
+            // Check whether formattedContent array is NOT empty
           } else if (formattedContent.length > 0) {
             const subNum = extractParaNum(el);
             const regex = new RegExp(
@@ -194,6 +211,9 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
             formattedContent[formattedContent.length - 1].content.push(
               el.replace(regex, `${subNum}º `)
             );
+            // If empty, push header element to headerArray
+          } else {
+            headerArray.push(el);
           }
         }
       }
@@ -201,6 +221,8 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
       return {
         title,
         description,
+        header: headerArray,
+        footer: footerArray,
         synopsis: titlesArray,
         formattedContent,
       };
@@ -212,7 +234,7 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
     return body;
 
   } catch (error) {
-    console.error(error.message);
+    console.error(error.message, error);
     throw new HttpException(500, `Error fetching data`);
   }
 };

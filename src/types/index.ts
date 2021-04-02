@@ -61,6 +61,8 @@ export interface ITitles {
 export interface ICrawlerResponse {
   title: string | undefined;
   description: string | undefined;
+  header: Array<string>;
+  footer: Array<string>;
   synopsis: Array<ITitles>;
   formattedContent: Array<IArt>;
 }
@@ -69,7 +71,7 @@ export interface ICrawlOptions {
   url: string;
 }
 
-export interface ILAwResponse {
+export interface ILawResponse {
   result: Array<ICrawlerResponse>;
   cached: boolean;
 }

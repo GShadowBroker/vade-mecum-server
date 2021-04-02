@@ -2,14 +2,10 @@ import express from 'express';
 import { crawl } from '../../services/crawler';
 import { HttpException } from '../../utils/exceptions';
 import { client } from "../../server";
-import { ICrawlerResponse, ILAwResponse, ILawsList } from '../../types';
+import lawsList from '../../config/lawsList';
+import { ICrawlerResponse, ILawResponse } from '../../types';
 
 const router = express.Router();
-
-const lawsList: ILawsList = {
-  constituicao: "http://www.planalto.gov.br/ccivil_03/constituicao/ConstituicaoCompilado.htm",
-  codigo_civil: "http://www.planalto.gov.br/ccivil_03/leis/2002/l10406compilada.htm"
-};
 
 router.get('/', (_req, res, _next) => {
   return res.status(200).json({ success: true });
@@ -33,18 +29,17 @@ router.get('/:law_name', async (req, res, next) => {
         });
       });
     };
-
     const result = await setCache(lawsList[law_name]);
 
     if (result) {
-      const response: ILAwResponse = {
+      const response: ILawResponse = {
         result: JSON.parse(result) as Array<ICrawlerResponse>,
         cached: true
       };
       return res.status(200).json(response);
     } else {
       const lawData = await crawl({ url: lawsList[law_name] });
-      client.setex(lawsList[law_name], 60 * 6 * 24 * 2, JSON.stringify(lawData));
+      client.setex(lawsList[law_name], 30, JSON.stringify(lawData));
       return res.status(200).json({ result: lawData, cached: false });
     }
 
