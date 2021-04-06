@@ -1,0 +1,225 @@
+import { IArt, ITitles } from '../types';
+
+export default () => {
+  const titleEl: HTMLElement | null = document.querySelector("a font, font a");
+  const title: string | undefined = titleEl?.innerText.replace(/\s+N\s+o\s+/gi, " nº ");
+  const descriptionEl: HTMLElement | null = document.querySelector(
+    "table p font[color='#800000'], p font[color='#800000'], table p span font"
+  );
+  const description: string | undefined = descriptionEl?.innerText;
+
+  // Refine creation of Titles to prevent them from being created as separate elements
+  let pRaw: string[] = Array.from(<any>document.querySelectorAll("body p"), (el: HTMLElement): string => {
+
+    // Return pRaw with filtered items:
+    return el.innerText
+      // .replace(/\n/gi, ", ")
+      // .replace(/\s{2,}/gi, " ")
+      // .replace(/(\s\s+?|\+)/gi, "")
+      .replace(/\s\s+/gi, " ")
+      .replace("(&nbsp;)(&nbsp;)+", " ")
+      .replace(/Art.&nbsp;/gi, "Art. ")
+      .replace(/\s+N\s+o\s+/gi, " nº ")
+      .trim();
+  }).filter((el: string) => {
+    const excludeWords: string[] = [
+      "vigência",
+      "índice",
+      "índice temático",
+      "mensagem de veto",
+      "emendas constitucionais",
+      "emendas constitucionais de revisão",
+      "ato das disposições constitucionais transitórias",
+      "atos decorrentes do disposto no § 3º do art. 5º"
+    ];
+    if (
+      excludeWords.includes(el.toLowerCase()) ||
+      /^\s+$/gi.test(el) ||
+      /^\(vide.+\)/gi.test(el) ||
+      el === "*"
+    ) {
+      return false;
+    }
+    return !!el;
+  });
+
+  // Returns the article number or null
+  const extractArtNum = (text: string): string | null => {
+    text = text.trim();
+    const art = text.match(
+      /^Art.(\s)?.+?(\s-|\.\s|\s|\(VETADO\)|\(REVOGADO\))+?/gi
+    );
+    if (!art || !Array.isArray(art)) return null;
+
+    const matchArt = art[0].match(
+      /(\d+?\.\d+-[a-záàâãéèêíïóôõöúçñ]|\d+?\.\d+|\d+(º+?|°+?|o+?)?-[a-záàâãéèêíïóôõöúçñ]|\d+(º+?|°+?|o+?)?)/gi
+    );
+
+    if (!matchArt || !Array.isArray(matchArt)) return null;
+    if (!matchArt[0]) return null;
+    if (/-o/gi.test(matchArt[0])) {
+      return matchArt[0];
+    }
+    return matchArt[0].replace(/o/gi, "º");
+  };
+
+  // Returns the paragraph number or null
+  const extractParaNum = (text: string): string | null => {
+    text = text.trim();
+    const para = text.match(/^§(\s+?)?\d+(?=(º+?|°+?|o+?))/gi);
+    if (!para || !Array.isArray(para)) return null;
+
+    return para[0].replace("§", "").replace(/\s+/gi, "");
+  };
+
+  // Get title if text is a title or null if not
+  const getHeaderName = (text: string): string | null => {
+    text = text.trim();
+    const titles = ["parte", "livro", "título", "capítulo", "seção", "subseção"];
+    const firstWordArray = text.match(/^[a-záàâãéèêíïóôõöúçñ]+/gi);
+
+    if (!firstWordArray || !Array.isArray(firstWordArray)) return null;
+
+    const firstWord = firstWordArray[0];
+    if (!firstWord) return null;
+
+    if (firstWord.length === 1) {
+      const firstWordArrayWithSpaces = text.match(
+        /^([a-záàâãéèêíïóôõöúçñ]+\s{0,1})+/gi
+      );
+      if (!firstWordArrayWithSpaces || !Array.isArray(firstWordArrayWithSpaces)) {
+        return null;
+      }
+
+      const firstWordWithSpaces = firstWordArrayWithSpaces[0];
+      if (!firstWordWithSpaces) return null;
+
+      const wordWithoutSpaces = firstWordWithSpaces
+        .trim()
+        .replace(/\s/gi, "")
+        .toLowerCase();
+
+      return titles.includes(wordWithoutSpaces) ? wordWithoutSpaces : null;
+    }
+    return titles.includes(firstWord.toLowerCase()) ? firstWord : null;
+  };
+
+  const getNamelessHeader = (text: string): string | null => {
+    // Assumes it is not a named header (ex. capítulo, título, livro etc)
+    const regex = new RegExp(
+      /^(Art.|§\s|Parágrafo|\w\)\s|\d\s|[IVXLC]+\s|Pena\s)/,
+      "gi"
+    );
+    if (regex.test(text)) return null;
+    return text;
+  };
+
+  const filterPara = (paraArr: string[]): string[] => {
+    const newArr = [];
+    let lastElemIsTitle = false;
+    for (let i = 0; i < paraArr.length; i++) {
+      if (
+        getHeaderName(paraArr[i]) &&
+        /^[a-záàâãéèêíïóôõöúçñ]+\s+[a-záàâãéèêíïóôõöúçñ]+$/gi.test(
+          paraArr[i]
+        )
+      ) {
+        newArr.push(paraArr[i]);
+        lastElemIsTitle = true;
+      } else if (lastElemIsTitle) {
+        newArr[newArr.length - 1] = `${paraArr[i - 1]} - ${paraArr[i]}`;
+        lastElemIsTitle = false;
+      } else {
+        newArr.push(paraArr[i]);
+      }
+    }
+    return newArr;
+  };
+
+  pRaw = filterPara(pRaw);
+
+  // Format articles into a javascript objects
+  const formattedContent: Array<IArt> = [];
+  const titlesArray: Array<ITitles> = [];
+  const headerArray: Array<string> = [];
+  const footerArray: Array<string> = [];
+  let reachedFooter = false;
+
+  // Format pRaw
+  for (const el of pRaw) {
+    if (/^(E|Ê)ste\s+texto\s+não\s+substitui/gi.test(el)) break;
+    if (/^Brasília/gi.test(el)) {
+      reachedFooter = true;
+    }
+    if (reachedFooter) {
+      footerArray.push(el);
+      continue;
+    }
+    // If it's an article
+    if (/^Art\.(\s)?/gi.test(el)) {
+      const art = extractArtNum(el);
+      formattedContent.push({
+        art: art,
+        caput: el
+          .replace(
+            /^Art.\s*\d+(\.\d+)?(-[a-záàâãéèêíïóôõöúçñ]+)?(º+?|°+?|o+?)?(-[a-záàâãéèêíïóôõöúçñ]+)?(\.\s+?)?(\s+?-\s+?)?\s*/gi,
+            ""
+          )
+          .trim()
+          .replace(/^\./gi, ""),
+        content: [],
+      });
+
+      if (titlesArray[titlesArray.length - 1]) {
+        titlesArray[titlesArray.length - 1].arts.push(art);
+      }
+    } else {
+      // Check if it's title (ex.: Capítulo I, Livro Primeiro)
+      const headerName = getHeaderName(el);
+      const namelessHeader = getNamelessHeader(el);
+
+      if (headerName) {
+        titlesArray.push({
+          title: headerName,
+          content: el.replace(/\n/gi, " - "),
+          arts: [],
+        });
+
+      } else if (namelessHeader) {
+        // Check if it's a nameless title (ex.: Extinção de punibilidade)
+        titlesArray.push({
+          title: "",
+          content: el.replace(/\n/gi, " - "),
+          arts: [],
+        });
+
+      } else if (formattedContent.length > 0) {
+        // Check whether formattedContent array is NOT empty
+        const subNum = extractParaNum(el);
+        const regex = new RegExp(
+          `${subNum}o(?=(\\s)*[a-záàâãéèêíïóôõöúçñ]+)`,
+          "gi"
+        );
+        formattedContent[formattedContent.length - 1].content.push(
+          el.replace(regex, `${subNum}º `)
+        );
+
+      } else {
+        // If empty, push header element to headerArray
+        if (formattedContent.length === 0) {
+          headerArray.push(el);
+        }
+      }
+    }
+  }
+
+  return {
+    title,
+    description,
+    // header: headerArray,
+    // footer: footerArray,
+    synopsis: titlesArray,
+    formattedContent,
+    pRaw, // for debugging only
+  };
+};

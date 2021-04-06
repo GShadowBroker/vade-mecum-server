@@ -39,7 +39,7 @@ router.get('/:law_name', async (req, res, next) => {
       return res.status(200).json(response);
     } else {
       const lawData = await crawl({ url: lawsList[law_name] });
-      client.setex(law_name, 30, JSON.stringify(lawData));
+      client.setex(law_name, 10, JSON.stringify(lawData));
       return res.status(200).json({ result: lawData, cached: false });
     }
 
