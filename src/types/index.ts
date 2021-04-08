@@ -61,8 +61,8 @@ export interface ITitles {
 export interface ICrawlerResponse {
   title: string | undefined;
   description: string | undefined;
-  // header: Array<string>;
-  // footer: Array<string>;
+  header: Array<string>;
+  footer: Array<string>;
   synopsis: Array<ITitles>;
   formattedContent: Array<IArt>;
 }

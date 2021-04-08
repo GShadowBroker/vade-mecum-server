@@ -9,13 +9,19 @@ export default () => {
   const description: string | undefined = descriptionEl?.innerText;
 
   // Refine creation of Titles to prevent them from being created as separate elements
-  let pRaw: string[] = Array.from(<any>document.querySelectorAll("body p"), (el: HTMLElement): string => {
+  let pRaw: string[] = Array.from(<any>document.querySelectorAll("body :is(p, h1, h2, h3, h4, h5, h6)"), (el: HTMLElement): string => {
+    let textEl: string = el.innerText;
+    // Check if it's PARTE GERAL or PARTE ESPECIAL
+    if (/^P\s+A\s+R\s+T\s+E\s/gi.test(textEl)) {
+      if (/^P\s+A\s+R\s+T\s+E\s+G\s+E\s+R\s+A\s+L$/gi.test(textEl)) {
+        textEl = "PARTE GERAL";
+      } else if (/^P\s+A\s+R\s+T\s+E\s+E\s+S\s+P\s+E\s+C\s+I\s+A\s+L$/gi.test(textEl)) {
+        textEl = "PARTE ESPECIAL";
+      }
+    }
 
     // Return pRaw with filtered items:
-    return el.innerText
-      // .replace(/\n/gi, ", ")
-      // .replace(/\s{2,}/gi, " ")
-      // .replace(/(\s\s+?|\+)/gi, "")
+    return textEl
       .replace(/\s\s+/gi, " ")
       .replace("(&nbsp;)(&nbsp;)+", " ")
       .replace(/Art.&nbsp;/gi, "Art. ")
@@ -30,12 +36,15 @@ export default () => {
       "emendas constitucionais",
       "emendas constitucionais de revisão",
       "ato das disposições constitucionais transitórias",
-      "atos decorrentes do disposto no § 3º do art. 5º"
+      "atos decorrentes do disposto no § 3º do art. 5º",
+      "lei de introdução às normas do direito brasileiro"
     ];
     if (
       excludeWords.includes(el.toLowerCase()) ||
       /^\s+$/gi.test(el) ||
-      /^\(vide.+\)/gi.test(el) ||
+      /^\(vide\s.+\)/gi.test(el) ||
+      /^vide\s.+/gi.test(el) ||
+      /^vigência|^mensagem\s+de\s+veto/gi.test(el) ||
       el === "*"
     ) {
       return false;
@@ -45,10 +54,11 @@ export default () => {
 
   // Returns the article number or null
   const extractArtNum = (text: string): string | null => {
-    text = text.trim();
+    text = text.trim().replace(/^Art(\.+\s+|\s+\.+)+?(?=\d+)/gi, "Art. ");
     const art = text.match(
-      /^Art.(\s)?.+?(\s-|\.\s|\s|\(VETADO\)|\(REVOGADO\))+?/gi
+      /^Art.\s*.+?(\s-|\.\s|\s|\(VETADO\)|\(REVOGADO\))+?/gi
     );
+    console.log(`art`, art);
     if (!art || !Array.isArray(art)) return null;
 
     const matchArt = art[0].match(
@@ -106,8 +116,10 @@ export default () => {
 
   const getNamelessHeader = (text: string): string | null => {
     // Assumes it is not a named header (ex. capítulo, título, livro etc)
+    if (text.length > 120) return null;
+    if (/^.+(\.|:|;)$/gi.test(text)) return null;
     const regex = new RegExp(
-      /^(Art.|§\s|Parágrafo|\w\)\s|\d\s|[IVXLC]+\s|Pena\s)/,
+      /^(Art.|§\s|Parágrafo|\w\)\w*\s*|\d+\s|\d+\.\s|[IVXLC]+-*\s|Pena\s|Penalidade\s|Infração\s|Medida\s+?administrativa)/,
       "gi"
     );
     if (regex.test(text)) return null;
@@ -115,24 +127,26 @@ export default () => {
   };
 
   const filterPara = (paraArr: string[]): string[] => {
-    const newArr = [];
+    const newArr: string[] = [];
     let lastElemIsTitle = false;
     for (let i = 0; i < paraArr.length; i++) {
       if (
         getHeaderName(paraArr[i]) &&
-        /^[a-záàâãéèêíïóôõöúçñ]+\s+[a-záàâãéèêíïóôõöúçñ]+$/gi.test(
-          paraArr[i]
-        )
+        /^[a-záàâãéèêíïóôõöúçñ]+\s+[a-záàâãéèêíïóôõöúçñ]+$/gi.test(paraArr[i])
       ) {
         newArr.push(paraArr[i]);
         lastElemIsTitle = true;
-      } else if (lastElemIsTitle) {
-        newArr[newArr.length - 1] = `${paraArr[i - 1]} - ${paraArr[i]}`;
+      } else if (lastElemIsTitle) { // paraArr[i - 1]
+        newArr[newArr.length - 1] = `${newArr[newArr.length - 1]} - ${paraArr[i]}`;
+        lastElemIsTitle = false;
+      } else if (/^\((Redação\s+dada|Incluído\s+)/gi.test(paraArr[i])) {
+        newArr[newArr.length - 1] = `${newArr[newArr.length - 1]} ${paraArr[i]}`;
         lastElemIsTitle = false;
       } else {
         newArr.push(paraArr[i]);
       }
     }
+    console.log(`newArr`, newArr);
     return newArr;
   };
 
@@ -147,20 +161,34 @@ export default () => {
 
   // Format pRaw
   for (const el of pRaw) {
-    if (/^(E|Ê)ste\s+texto\s+não\s+substitui/gi.test(el)) break;
-    if (/^Brasília/gi.test(el)) {
+    // Break loop at the end of law
+    if (
+      /^((E|Ê)ste\s+texto\s+não\s+substitui)/gi.test(el) &&
+      formattedContent.length > 5
+    ) break;
+
+    if (
+      /^(Anexo|Anexo\s+[IVXLC]+)/gi.test(el) &&
+      formattedContent.length > 20
+    ) break;
+
+    // Flag loop as having reached footer
+    if (/^(Brasília|Rio\sde\sJaneiro)/gi.test(el) && formattedContent.length > 5) {
       reachedFooter = true;
     }
+    // Push to footer instead of content
     if (reachedFooter) {
       footerArray.push(el);
       continue;
     }
+
     // If it's an article
     if (/^Art\.(\s)?/gi.test(el)) {
       const art = extractArtNum(el);
       formattedContent.push({
         art: art,
         caput: el
+          .replace(/^Art(\.+\s+|\s+\.+)+?(?=\d+)/gi, "Art. ") // Replace malformatted art (ex.: CLT's "Art. . 177 -")
           .replace(
             /^Art.\s*\d+(\.\d+)?(-[a-záàâãéèêíïóôõöúçñ]+)?(º+?|°+?|o+?)?(-[a-záàâãéèêíïóôõöúçñ]+)?(\.\s+?)?(\s+?-\s+?)?\s*/gi,
             ""
@@ -173,51 +201,66 @@ export default () => {
       if (titlesArray[titlesArray.length - 1]) {
         titlesArray[titlesArray.length - 1].arts.push(art);
       }
-    } else {
-      // Check if it's title (ex.: Capítulo I, Livro Primeiro)
-      const headerName = getHeaderName(el);
-      const namelessHeader = getNamelessHeader(el);
 
-      if (headerName) {
-        titlesArray.push({
-          title: headerName,
-          content: el.replace(/\n/gi, " - "),
-          arts: [],
-        });
-
-      } else if (namelessHeader) {
-        // Check if it's a nameless title (ex.: Extinção de punibilidade)
-        titlesArray.push({
-          title: "",
-          content: el.replace(/\n/gi, " - "),
-          arts: [],
-        });
-
-      } else if (formattedContent.length > 0) {
-        // Check whether formattedContent array is NOT empty
-        const subNum = extractParaNum(el);
-        const regex = new RegExp(
-          `${subNum}o(?=(\\s)*[a-záàâãéèêíïóôõöúçñ]+)`,
-          "gi"
-        );
-        formattedContent[formattedContent.length - 1].content.push(
-          el.replace(regex, `${subNum}º `)
-        );
-
-      } else {
-        // If empty, push header element to headerArray
-        if (formattedContent.length === 0) {
-          headerArray.push(el);
-        }
-      }
+      continue;
     }
+
+
+    // Not article
+    const headerName = getHeaderName(el);
+    const namelessHeader = getNamelessHeader(el);
+
+    if (headerName && !reachedFooter) {
+      titlesArray.push({
+        title: headerName,
+        content: el.replace(/\n/gi, " - "),
+        arts: [],
+      });
+      continue;
+    }
+
+    if (namelessHeader && !reachedFooter && titlesArray.length > 0) {
+      // Check if it's a nameless title (ex.: Extinção de punibilidade)
+      titlesArray.push({
+        title: "",
+        content: el.replace(/\n/gi, " - "),
+        arts: [],
+      });
+      continue;
+    }
+
+    if (formattedContent.length > 0) {
+      // Check whether formattedContent array is NOT empty
+      const subNum = extractParaNum(el);
+      const regex = new RegExp(
+        `${subNum}o(?=(\\s)*[a-záàâãéèêíïóôõöúçñ]+)`,
+        "gi"
+      );
+      formattedContent[formattedContent.length - 1].content.push(
+        el.replace(regex, `${subNum}º `)
+      );
+      continue;
+    }
+
+    // If DISPOSIÇÃO PRELIMINAR and empry formatted content, push to titles
+    if (/^DISPOSIÇÃO\s+PRELIMINAR/gi.test(el)) {
+      titlesArray.push({
+        title: "disposição",
+        content: el,
+        arts: [],
+      });
+      continue;
+    }
+
+    // If empty, push header element to headerArray
+    headerArray.push(el);
   }
 
   return {
     title,
     description,
-    // header: headerArray,
-    // footer: footerArray,
+    header: headerArray,
+    footer: footerArray,
     synopsis: titlesArray,
     formattedContent,
     pRaw, // for debugging only
