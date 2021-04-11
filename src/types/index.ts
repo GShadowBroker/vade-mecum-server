@@ -46,16 +46,21 @@ export interface IFilterUsersModel {
   role: IFilterUserRole;
 }
 
-export interface IArt {
-  art: string | null;
-  caput: string | undefined;
-  content: Array<string>;
+export interface IArtContentChildren {
+  type: string;
+  content: string;
 }
 
-export interface ITitles {
-  title: string;
+export interface IArtContent {
+  art: string | null;
+  caput: string;
+  children: Array<IArtContentChildren>;
+}
+
+export interface ISynopsis {
+  type: string | null;
   content: string;
-  arts: Array<string | null>;
+  children: Array<string | null>;
 }
 
 export interface ICrawlerResponse {
@@ -63,8 +68,8 @@ export interface ICrawlerResponse {
   description: string | undefined;
   header: Array<string>;
   footer: Array<string>;
-  synopsis: Array<ITitles>;
-  formattedContent: Array<IArt>;
+  synopsis: Array<ISynopsis>;
+  content: Array<IArtContent>;
 }
 
 export interface ICrawlOptions {

@@ -1,4 +1,4 @@
-import { IArt, ITitles } from '../types';
+import { IArtContent, ISynopsis } from '../types';
 
 export default () => {
   const titleEl: HTMLElement | null = document.querySelector("a font, font a");
@@ -58,7 +58,6 @@ export default () => {
     const art = text.match(
       /^Art.\s*.+?(\s-|\.\s|\s|\(VETADO\)|\(REVOGADO\))+?/gi
     );
-    console.log(`art`, art);
     if (!art || !Array.isArray(art)) return null;
 
     const matchArt = art[0].match(
@@ -118,8 +117,9 @@ export default () => {
     // Assumes it is not a named header (ex. capítulo, título, livro etc)
     if (text.length > 120) return null;
     if (/^.+(\.|:|;)$/gi.test(text)) return null;
+    if (/^§§/gi.test(text)) return null;
     const regex = new RegExp(
-      /^(Art.|§\s|Parágrafo|\w\)\w*\s*|\d+\s|\d+\.\s|[IVXLC]+-*\s|Pena\s|Penalidade\s|Infração\s|Medida\s+?administrativa)/,
+      /^(Art.|§\s|Parágrafo|\w\)\w*\s*|\d+\s|\d+\.\s|[IVXLC]{1,3}-*[a-záàâãéèêíïóôõöúçñ]{0,1}-*\s|Pena\s|Penalidade\s|Infração\s|Medida\s+?administrativa)/,
       "gi"
     );
     if (regex.test(text)) return null;
@@ -146,15 +146,14 @@ export default () => {
         newArr.push(paraArr[i]);
       }
     }
-    console.log(`newArr`, newArr);
     return newArr;
   };
 
   pRaw = filterPara(pRaw);
 
   // Format articles into a javascript objects
-  const formattedContent: Array<IArt> = [];
-  const titlesArray: Array<ITitles> = [];
+  const formattedContent: Array<IArtContent> = [];
+  const titlesArray: Array<ISynopsis> = [];
   const headerArray: Array<string> = [];
   const footerArray: Array<string> = [];
   let reachedFooter = false;
@@ -195,11 +194,11 @@ export default () => {
           )
           .trim()
           .replace(/^\./gi, ""),
-        content: [],
+        children: [],
       });
 
       if (titlesArray[titlesArray.length - 1]) {
-        titlesArray[titlesArray.length - 1].arts.push(art);
+        titlesArray[titlesArray.length - 1].children.push(art);
       }
 
       continue;
@@ -212,9 +211,9 @@ export default () => {
 
     if (headerName && !reachedFooter) {
       titlesArray.push({
-        title: headerName,
+        type: headerName,
         content: el.replace(/\n/gi, " - "),
-        arts: [],
+        children: [],
       });
       continue;
     }
@@ -222,9 +221,9 @@ export default () => {
     if (namelessHeader && !reachedFooter && titlesArray.length > 0) {
       // Check if it's a nameless title (ex.: Extinção de punibilidade)
       titlesArray.push({
-        title: "",
+        type: null,
         content: el.replace(/\n/gi, " - "),
-        arts: [],
+        children: [],
       });
       continue;
     }
@@ -236,18 +235,42 @@ export default () => {
         `${subNum}o(?=(\\s)*[a-záàâãéèêíïóôõöúçñ]+)`,
         "gi"
       );
-      formattedContent[formattedContent.length - 1].content.push(
-        el.replace(regex, `${subNum}º `)
-      );
+      formattedContent[formattedContent.length - 1].children.push({
+        type: "provisório",
+        content: el.replace(regex, `${subNum}º `)
+      });
+
+      // const lastTitle = titlesArray[titlesArray.length - 1];
+      // if (!lastTitle) continue;
+
+      // if (lastTitle.title !== "") continue;
+
+      // let lastArtObject = lastTitle.arts.find((item) => !!item.art);
+
+      // if (!lastArtObject) {
+      //   const beforeLastTitle = titlesArray[titlesArray.length - 2];
+      //   if (!beforeLastTitle) continue;
+
+      //   lastArtObject = beforeLastTitle.arts[beforeLastTitle.arts.length - 1];
+      //   if (!lastArtObject) continue;
+      // }
+
+      // // if (lastArtObject.subArt) continue;
+
+      // lastTitle.arts.push({
+      //   art: lastArtObject.art,
+      //   subArt: el,
+      // });
+
       continue;
     }
 
     // If DISPOSIÇÃO PRELIMINAR and empry formatted content, push to titles
     if (/^DISPOSIÇÃO\s+PRELIMINAR/gi.test(el)) {
       titlesArray.push({
-        title: "disposição",
+        type: "disposição",
         content: el,
-        arts: [],
+        children: [],
       });
       continue;
     }
@@ -262,7 +285,7 @@ export default () => {
     header: headerArray,
     footer: footerArray,
     synopsis: titlesArray,
-    formattedContent,
+    content: formattedContent,
     pRaw, // for debugging only
   };
 };
