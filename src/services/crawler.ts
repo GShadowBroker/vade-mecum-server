@@ -35,7 +35,7 @@ export const crawl = async (options: ICrawlOptions): Promise<ICrawlerResponse> =
     await page.goto(url);
 
     // Logic
-    await page.waitForTimeout(100);
+    await page.waitForTimeout(500);
     const body: ICrawlerResponse = await page.evaluate(evalPage);
 
     // Finishing up

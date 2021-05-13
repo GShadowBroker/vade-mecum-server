@@ -286,6 +286,6 @@ export default () => {
     footer: footerArray,
     synopsis: titlesArray,
     content: formattedContent,
-    pRaw, // for debugging only
+    pRaw // for debugging only
   };
 };

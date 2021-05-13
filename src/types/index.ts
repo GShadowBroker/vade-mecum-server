@@ -64,14 +64,16 @@ export interface ISynopsis {
 }
 
 export interface ICrawlerResponse {
-  url: string;
   title: string | undefined;
   description: string | undefined;
   header: Array<string>;
   footer: Array<string>;
   synopsis: Array<ISynopsis>;
   content: Array<IArtContent>;
-  updatedAt: Date;
+}
+
+export interface ILaw extends ICrawlerResponse {
+  url: string;
 }
 
 export interface ICrawlOptions {

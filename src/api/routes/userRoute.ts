@@ -5,6 +5,7 @@ import { IFilterUsersModel, IUsersQueryModel, IUserSafe, IParamsId } from "../..
 import { HttpException } from '../../utils/exceptions';
 import { validateParamsId, validateQueryUsers } from '../../utils/validations';
 import passport from 'passport';
+import { prisma } from '../../server';
 
 const router = express.Router();
 
@@ -29,6 +30,34 @@ router.get('/:id', passport.authenticate('jwt', { session: false }), async (req,
     const id = validateParamsId(req.params as unknown as IParamsId);
     const user = await userService.getUserById(id);
     return res.status(200).json({ ...user, password: undefined });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+router.put('/promote/:id', passport.authenticate('jwt', { session: false }), async (req: any, res, next) => {
+
+  try {
+    if (req.user.role !== 'ADMIN') {
+      throw new HttpException(403, "Unauthorized action");
+    }
+
+    const id = validateParamsId(req.params as unknown as IParamsId);
+
+    const promotedUser = await prisma.user.update({
+      where: {
+        id
+      },
+      data: {
+        role: "ADMIN"
+      }
+    });
+
+    if (!promotedUser) {
+      throw new HttpException(400, "Failed promoting user to admin. Please check whether user exists.");
+    }
+
+    return res.status(201).json({ success: true });
   } catch (error) {
     return next(error);
   }

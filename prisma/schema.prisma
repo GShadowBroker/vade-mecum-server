@@ -23,39 +23,14 @@ enum Role {
   USER
 }
 
-model SubArt {
-  id        Int      @id @default(autoincrement())
-  type      String
-  content   String
-  Content   Content? @relation(fields: [contentId], references: [id])
-  contentId Int?
-}
-
-model Synopsis {
-  id      Int      @id @default(autoincrement())
-  type    String
-  content String
-  chilren String[]
-  Law     Law[]
-}
-
-model Content {
-  id       Int      @id @default(autoincrement())
-  art      String
-  caput    String
-  children SubArt[]
-  Law      Law[]
-}
-
 model Law {
-  id         Int      @id @default(autoincrement())
-  updatedAt  DateTime @updatedAt @map("updated_at")
-  title      String
-  header     String[]
-  footer     String[]
-  synopsis   Synopsis @relation(fields: [synopsisId], references: [id])
-  synopsisId Int
-  content    Content  @relation(fields: [contentId], references: [id])
-  url        String   @unique
-  contentId  Int
+  id          Int      @id @default(autoincrement())
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  title       String
+  description String
+  header      String[]
+  footer      String[]
+  synopsis    Json
+  content     Json
+  url         String   @unique
 }
