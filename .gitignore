@@ -4,3 +4,5 @@ migrations
 build
 *.rest
 .env
+.yarn
+.yarnrc

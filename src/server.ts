@@ -1,4 +1,7 @@
 import express from 'express';
+import dotenv from 'dotenv';
+dotenv.config();
+
 import { PrismaClient } from '@prisma/client';
 import config from './config';
 import api from './api';

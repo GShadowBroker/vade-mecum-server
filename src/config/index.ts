@@ -1,7 +1,4 @@
 import { IConfig } from '../types';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '../../.env' });
 
 export default <IConfig>{
   port: Number(process.env.PORT) || 3000,

@@ -21,6 +21,7 @@ export default (passport: PassportStatic): void => {
     jwtFromRequest: cookieExtractor,
     secretOrKey: config.tokenSecret
   };
+
   passport.use(new JwtStrategy(opts, (jwt_payload, done) => {
     if (!jwt_payload.exp || Date.now() > jwt_payload.exp) {
       done(new HttpException(403, "Invalid auth token"), false);

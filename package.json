@@ -1,7 +1,7 @@
 {
-  "name": "rest-api",
+  "name": "vade-mecum-server",
   "version": "1.0.0",
-  "description": "A REST API boilerplate.",
+  "description": "Rest API for vade mecum app.",
   "main": "server.ts",
   "author": "Gledyson Ferreira",
   "license": "MIT",
