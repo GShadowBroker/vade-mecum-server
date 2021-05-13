@@ -2,7 +2,7 @@ import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
 
-import { PrismaClient } from '@prisma/client';
+import Prisma from '@prisma/client';
 import config from './config';
 import api from './api';
 import middleware from './middlewares';
@@ -12,7 +12,7 @@ import passport from 'passport';
 import setReqUser from './services/passport';
 import cookieParser from 'cookie-parser';
 
-export const prisma = new PrismaClient();
+export const prisma = new Prisma.PrismaClient();
 export const app = express();
 
 app.disable('x-powered-by');
