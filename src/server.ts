@@ -11,10 +11,8 @@ import cors from 'cors';
 import passport from 'passport';
 import setReqUser from './services/passport';
 import cookieParser from 'cookie-parser';
-import redis from 'redis';
 
 export const prisma = new PrismaClient();
-export const client = redis.createClient();
 export const app = express();
 
 app.disable('x-powered-by');
